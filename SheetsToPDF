@@ -1,0 +1,51 @@
+Sub MergeAndExportSheetsToPDF()
+    Dim fDialog As FileDialog
+    Dim mainWorkbook As Workbook
+    Dim openedWorkbook As Workbook
+    Dim sheet As Worksheet
+    Dim sheetIndex As Long
+    Dim sheetName As String
+    Dim pdfFilePath As Variant
+    
+    Set fDialog = Application.FileDialog(msoFileDialogFilePicker)
+    
+    ' Configure file dialog properties
+    fDialog.Title = "Select a file"
+    fDialog.InitialFileName = "C:\"
+    'Optional: Add filters
+    fDialog.Filters.Add "Excel files", "*.xlsx"
+    
+    'Show the dialog. -1 means success!
+    If fDialog.Show = -1 Then
+        ' Create a new workbook
+        Set mainWorkbook = Workbooks.Add
+        ' Loop through each selected file
+        For Each i In fDialog.SelectedItems
+            ' Open each selected workbook
+            Set openedWorkbook = Workbooks.Open(Filename:=i, ReadOnly:=True)
+            ' Loop through each sheet in the opened workbook
+            For Each sheet In openedWorkbook.Sheets
+                'unhidden the sheet
+                sheet.Visible = True
+                ' Copy each sheet to the main workbook after the last sheet
+                sheet.Copy After:=mainWorkbook.Sheets(mainWorkbook.Sheets.Count)
+                ' Rename the copied sheet with the determined name
+                mainWorkbook.Sheets(mainWorkbook.Sheets.Count).Name = mainWorkbook.Sheets.Count - 1
+            Next sheet
+            ' Close the opened workbook
+            openedWorkbook.Close savechanges:=False
+        Next i
+        ' Delete the first sheet in the main workbook
+        Application.DisplayAlerts = False ' Disable alerts to avoid the deletion confirmation dialog
+        mainWorkbook.Sheets(1).Delete
+        Application.DisplayAlerts = True ' Enable alerts again
+        ' Prompt user for PDF file path and name
+        pdfFilePath = Application.GetSaveAsFilename(InitialFileName:="MergedSheets.pdf", FileFilter:="PDF Files (*.pdf), *.pdf")
+        ' Check if the user selected a file
+        If pdfFilePath <> "False" Then
+            ' Export all sheets to PDF
+            mainWorkbook.ExportAsFixedFormat Type:=xlTypePDF, Filename:=pdfFilePath, Quality:=xlQualityStandard, IncludeDocProperties:=True, IgnorePrintAreas:=False, OpenAfterPublish:=True
+        End If
+    End If
+    Application.ScreenUpdating = True
+End Sub
